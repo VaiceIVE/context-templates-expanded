@@ -1,0 +1,16 @@
+name = "User Context Templates"
+version = 1
+copyright = ""
+description = "Adds your saved build templates to the context-based template cycle after FAF defaults. In building context, templates are filtered by menu icon (or first building if no icon)."
+author = ""
+uid = "a3f7c2e1-8b4d-4e9a-b1c2-0d8e7f6a5b4c"
+url = ""
+icon = ""
+selectable = true
+enabled = true
+ui_only = true
+requires = {}
+requiresNames = {}
+conflicts = {}
+before = {}
+after = {}
