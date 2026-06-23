@@ -1,7 +1,7 @@
 name = "User Context Templates"
 version = 1
 copyright = ""
-description = "Adds your saved build templates to the context-based template cycle after FAF defaults. In building context, templates are filtered by menu icon (or first building if no icon)."
+description = "Adds your saved build templates to the context-based template cycle after FAF defaults when hovering a matching building. Terrain cycling is unchanged."
 author = ""
 uid = "a3f7c2e1-8b4d-4e9a-b1c2-0d8e7f6a5b4c"
 url = ""

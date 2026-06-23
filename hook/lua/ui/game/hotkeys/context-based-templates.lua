@@ -9,25 +9,114 @@ local USER_SORT_BASE = 100000
 local _FilterByUnit = FilterTemplatesByUnitContext
 local _FilterByMouse = FilterTemplatesByMouseContext
 
-local function BlueprintsMatch(a, b, prefix)
+local function InSameUpgradeChain(blueprintIdA, blueprintIdB)
+    if not blueprintIdA or not blueprintIdB then
+        return false
+    end
+
+    if blueprintIdA == blueprintIdB then
+        return true
+    end
+
+    local function ancestors(blueprintId)
+        local chain = {}
+        local seen = {}
+        local current = blueprintId
+        for _ = 1, 16 do
+            if not current or seen[current] then
+                break
+            end
+            seen[current] = true
+            chain[current] = true
+            local blueprint = __blueprints[current]
+            if not blueprint or not blueprint.General then
+                break
+            end
+            current = blueprint.General.UpgradesFrom or blueprint.General.UpgradesFromBase
+        end
+        return chain
+    end
+
+    local chainA = ancestors(blueprintIdA)
+    if chainA[blueprintIdB] then
+        return true
+    end
+
+    local chainB = ancestors(blueprintIdB)
+    for id, present in pairs(chainA) do
+        if present and chainB[id] then
+            return true
+        end
+    end
+
+    return false
+end
+
+local function BlueprintsMatch(a, b, prefix, buildableUnits)
     if not a or not b then
         return false
     end
-    if ConvertBlueprintId(a, prefix) == ConvertBlueprintId(b, prefix) then
+
+    local aConverted = ConvertBlueprintId(a, prefix)
+    local bConverted = ConvertBlueprintId(b, prefix)
+
+    if aConverted == bConverted then
         return true
     end
-    return a:sub(3) == b:sub(3)
+
+    if a:sub(3) == b:sub(3) then
+        return true
+    end
+
+    if InSameUpgradeChain(aConverted, bConverted) then
+        return true
+    end
+
+    if buildableUnits then
+        local aBuildable = FindBuildableBlueprintId(a, buildableUnits, prefix)
+        local bBuildable = FindBuildableBlueprintId(b, buildableUnits, prefix)
+
+        if aBuildable and bBuildable and aBuildable == bBuildable then
+            return true
+        end
+
+        if aBuildable and (aBuildable == bConverted or InSameUpgradeChain(aBuildable, bConverted)) then
+            return true
+        end
+
+        if bBuildable and (bBuildable == aConverted or InSameUpgradeChain(bBuildable, aConverted)) then
+            return true
+        end
+    end
+
+    return false
 end
 
-local function UserTemplateMatchesBuilding(userTemplate, contextBlueprintId, prefix)
+local function GetTemplateReferenceBlueprint(userTemplate)
     local icon = userTemplate.icon
     if icon and icon ~= 'default' then
-        return BlueprintsMatch(icon, contextBlueprintId, prefix)
+        return icon
     end
 
     local templateData = userTemplate.templateData
     local first = templateData and templateData[3]
-    return first and BlueprintsMatch(first[1], contextBlueprintId, prefix)
+    return first and first[1]
+end
+
+local function UserTemplateMatchesBuilding(userTemplate, contextBlueprintId, prefix, buildableUnits)
+    local referenceBlueprint = GetTemplateReferenceBlueprint(userTemplate)
+    return referenceBlueprint and BlueprintsMatch(referenceBlueprint, contextBlueprintId, prefix, buildableUnits)
+end
+
+local function UserValidateTemplate(template, buildableUnits, prefix)
+    local templateData = template.TemplateData
+    for index = 3, TableGetn(templateData) do
+        local entry = templateData[index]
+        if type(entry) == 'table' and not FindBuildableBlueprintId(entry[1], buildableUnits, prefix) then
+            return false
+        end
+    end
+    return true
 end
 
 local function GetContextBlueprintId()
@@ -58,7 +147,7 @@ local function AppendUserTemplates(buildableUnits, prefix, contextBlueprintId)
     for _, userTemplate in userTemplates do
         local templateData = userTemplate.templateData
         if templateData and TableGetn(templateData) >= 3 then
-            if contextBlueprintId and not UserTemplateMatchesBuilding(userTemplate, contextBlueprintId, prefix) then
+            if not UserTemplateMatchesBuilding(userTemplate, contextBlueprintId, prefix, buildableUnits) then
                 continue
             end
 
@@ -70,7 +159,7 @@ local function AppendUserTemplates(buildableUnits, prefix, contextBlueprintId)
                 IsUserTemplate = true,
             }
 
-            if ValidateTemplate(entry, buildableUnits, prefix) then
+            if UserValidateTemplate(entry, buildableUnits, prefix) then
                 TableInsert(ContextBasedTemplates, entry)
             end
         end
@@ -79,18 +168,14 @@ end
 
 FilterTemplatesByUnitContext = function(buildableUnits, prefix)
     local contextBlueprintId = GetContextBlueprintId()
-    local applies = false
 
     if contextBlueprintId then
-        applies = _FilterByUnit(buildableUnits, prefix)
-    end
-
-    if not applies then
+        _FilterByUnit(buildableUnits, prefix)
+        AppendUserTemplates(buildableUnits, prefix, contextBlueprintId)
+    else
         _FilterByMouse(buildableUnits, prefix)
-        contextBlueprintId = nil
     end
 
-    AppendUserTemplates(buildableUnits, prefix, contextBlueprintId)
     return TableGetn(ContextBasedTemplates) > 0
 end
 

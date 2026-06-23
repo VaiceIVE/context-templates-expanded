@@ -22,8 +22,8 @@ Enable **User Context Templates** in the lobby mod list (UI-only; other players 
 
 - FAF default context templates appear first.
 - Your saved build templates appear after them.
-- **Building context** (hovered unit, build preview, or build order): only templates whose menu icon matches that building; if the icon is `default`, the first building in the template is used instead.
-- **Terrain context** (land/water, no building): all valid user templates are included.
+- **Building context** (hovered unit, build preview, or build order): FAF building-specific defaults plus user templates whose menu icon matches that building (upgrade chains such as T2/T3 shields match); if the icon is `default`, the first building in the template is used instead.
+- **Terrain context** (land/water, no building): only FAF defaults (e.g. PD and AA); user templates are not included.
 - User templates are sorted alphabetically by name among themselves.
 
 ## Test checklist
@@ -32,5 +32,5 @@ Enable **User Context Templates** in the lobby mod list (UI-only; other players 
 2. Select engineers, hover a building that matches one template icon, press the context-template hotkey — matching user templates should appear after FAF defaults, in A–Z order.
 3. Change a template icon in the construction menu — cycling should reflect the new filter.
 4. Use a template with the default icon — matching should use the first building in build order.
-5. Hover empty land with engineers selected — all valid user templates should appear after terrain defaults.
-6. Use a different faction’s engineers with templates saved in another faction’s blueprint ids — templates should still validate and convert.
+5. Hover empty land with engineers selected — only FAF terrain defaults (PD/AA); user templates should not appear.
+6. Hover a T3 shield with a user template icon set to the T2 shield — template should still match via upgrade chain.
