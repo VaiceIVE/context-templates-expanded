@@ -48,11 +48,12 @@ A template is included only if its reference building matches the hovered buildi
 | 1 | Template menu icon (set via **Change Icon** in the construction templates tab) |
 | 2 | First building in the template’s build order, if the icon is `default` |
 
-Matching accounts for:
+Matching always accounts for:
 
 - Faction conversion (e.g. Aeon template id with UEF engineers)
 - Same unit type across factions (blueprint numeric suffix)
-- Upgrade chains (e.g. T2 shield icon matches a hovered T3 shield)
+
+**Cross-tier matching** (e.g. T2 shield icon on a hovered T3 shield) is **off by default**. Enable it under **Options → Gameplay → Cross-tier template matching**.
 
 A template is also skipped if the current engineer selection cannot build every building in it (each entry is checked with upgrade/downgrade resolution).
 
@@ -68,6 +69,7 @@ mod/
 ├── mod_info.lua
 ├── lua/ContextTemplatesExpanded/UserTemplates.lua   # cache, indexing, matching
 └── hook/
+    ├── lua/options/options.lua                        # cross-tier matching toggle
     ├── lua/ui/game/hotkeys/context-based-templates.lua
     └── lua/ui/game/build_templates.lua              # cache invalidation
 ```
@@ -81,5 +83,5 @@ User templates are cached and indexed by reference blueprint (including upgrade 
 3. Change a template icon in the construction menu — cycling should reflect the new filter immediately.
 4. Use a template with the default icon — matching uses the first building in build order.
 5. Hover empty land with engineers selected — only FAF terrain defaults (PD/AA); user templates do not appear.
-6. Hover a T3 shield with a user template icon set to the T2 shield — template should still match via the upgrade chain.
+6. Hover a T3 shield with a user template icon set to the T2 shield — no match by default; enable **Cross-tier template matching** in Gameplay options to match via upgrade chain.
 7. Use a different faction’s engineers with templates saved in another faction’s blueprint ids — matching and validation should still work.

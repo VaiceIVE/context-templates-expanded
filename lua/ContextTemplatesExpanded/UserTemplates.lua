@@ -11,7 +11,10 @@ local StringLower = string.lower
 
 local EntityCategoryContains = EntityCategoryContains
 
+local Prefs = import("/lua/user/prefs.lua")
 local BuildTemplates = import("/lua/ui/game/build_templates.lua")
+
+local CROSS_TIER_OPTION_KEY = 'cte_cross_tier_matching'
 
 local USER_SORT_BASE = 100000
 local MAX_UPGRADE_DEPTH = 16
@@ -28,6 +31,10 @@ local upgradeChainCache = {}
 
 local function InvalidateCache()
     cacheDirty = true
+end
+
+local function CrossTierMatchingEnabled()
+    return Prefs.GetOption(CROSS_TIER_OPTION_KEY) == 1
 end
 
 local function GetAncestors(blueprintId)
@@ -126,6 +133,10 @@ local function BlueprintsMatch(referenceBlueprint, contextBlueprintId, prefix, b
         return true
     end
 
+    if not CrossTierMatchingEnabled() then
+        return false
+    end
+
     local referenceBlueprintData = __blueprints[referenceConverted]
     if referenceBlueprintData and referenceBlueprintData.Categories then
         if EntityCategoryContains(referenceBlueprintData.Categories, contextBlueprintId) then
@@ -202,6 +213,10 @@ local function IndexEntry(entry, referenceBlueprint)
     AddToIndex(referenceBlueprint, entry)
     AddToIndex(referenceBlueprint:sub(3), entry)
 
+    if not CrossTierMatchingEnabled() then
+        return
+    end
+
     for blueprintId, present in pairs(GetAncestors(referenceBlueprint)) do
         if present then
             AddToIndex(blueprintId, entry)
@@ -276,6 +291,10 @@ local function BuildCandidateSet(contextBlueprintId, prefix)
     markCandidates(contextBlueprintId:sub(3))
     markCandidates(converted)
     markCandidates(converted:sub(3))
+
+    if not CrossTierMatchingEnabled() then
+        return candidates
+    end
 
     for blueprintId, present in pairs(GetAncestors(contextBlueprintId)) do
         if present then
