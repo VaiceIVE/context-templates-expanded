@@ -61,6 +61,19 @@ A template is also skipped if the current engineer selection cannot build every 
 1. FAF default templates (by `TemplateSortingOrder`)
 2. Matching user templates (A–Z by template name)
 
+## Project layout
+
+```
+mod/
+├── mod_info.lua
+├── lua/ContextTemplatesExpanded/UserTemplates.lua   # cache, indexing, matching
+└── hook/
+    ├── lua/ui/game/hotkeys/context-based-templates.lua
+    └── lua/ui/game/build_templates.lua              # cache invalidation
+```
+
+User templates are cached and indexed by reference blueprint (including upgrade chains). The cache refreshes when templates are added, removed, renamed, or given a new icon.
+
 ## Test checklist
 
 1. Save two or more user templates with different icons.
