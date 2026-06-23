@@ -1,9 +1,9 @@
-name = "User Context Templates"
+name = "Context Templates Expanded"
 version = 1
 copyright = ""
 description = "Adds your saved build templates to the context-based template cycle after FAF defaults when hovering a matching building. Terrain cycling is unchanged."
 author = ""
-uid = "a3f7c2e1-8b4d-4e9a-b1c2-0d8e7f6a5b4c"
+uid = "c0ffeeee-babe-4200-ba5e-777777777777"
 url = ""
 icon = ""
 selectable = true
