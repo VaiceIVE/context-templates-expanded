@@ -1,58 +1,26 @@
 -------------------------------------------------------------------------------
--- Context Templates Expanded: outermost selection guards for template cycling.
+-- Context Templates Expanded: gamemain hook wiring.
 
-do
-    local SelectionCompat = import('/mods/contexttemplatesexpanded/modules/selection_compat.lua')
-    local CommandMode = import('/lua/ui/game/commandmode.lua')
+local Guards = import('/mods/contexttemplatesexpanded/modules/selection_guards.lua')
+local CommandMode = import('/lua/ui/game/commandmode.lua')
+local Selection = import('/lua/ui/game/selection.lua')
 
-    local _SetIgnoreSelection = SetIgnoreSelection
-    local _CommandModeSetIgnoreSelection = CommandMode.SetIgnoreSelection
-    local _OnSelectionChanged = OnSelectionChanged
-    local _DeselectSelens = DeselectSelens
-
-    local function IsSelectionBlocked()
+local wrapped = Guards.Create({
+    setIgnoreSelection = SetIgnoreSelection,
+    commandModeSetIgnoreSelection = CommandMode.SetIgnoreSelection,
+    onSelectionChanged = OnSelectionChanged,
+    deselectSelens = DeselectSelens,
+    getIgnoreSelection = function()
         return ignoreSelection
-            or SelectionCompat.IsSuppressed()
-            or import('/lua/ui/game/selection.lua').IsHidden()
-    end
+    end,
+    setIgnoreSelectionFlag = function(ignore)
+        ignoreSelection = ignore
+    end,
+    selectionIsHidden = Selection.IsHidden,
+})
 
-    function SetIgnoreSelection(ignore)
-        ignoreSelection = ignore == true
-        _SetIgnoreSelection(ignore)
-    end
-
-    function CommandMode.SetIgnoreSelection(ignore)
-        ignoreSelection = ignore == true
-        _CommandModeSetIgnoreSelection(ignore)
-    end
-
-    function IsIgnoreSelection()
-        return ignoreSelection or SelectionCompat.IsSuppressed()
-    end
-
-    function OnSelectionChanged(oldSelection, newSelection, added, removed)
-        if IsSelectionBlocked() then
-            return
-        end
-
-        local ok, commonSelect = pcall(import, '/mods/common/select.lua')
-        if ok and commonSelect.IsHidden and commonSelect.IsHidden() then
-            return
-        end
-
-        _OnSelectionChanged(oldSelection, newSelection, added, removed)
-    end
-
-    function DeselectSelens(selection)
-        if IsSelectionBlocked() then
-            return selection, false
-        end
-
-        local ok, commonSelect = pcall(import, '/mods/common/select.lua')
-        if ok and commonSelect.IsHidden and commonSelect.IsHidden() then
-            return selection, false
-        end
-
-        return _DeselectSelens(selection)
-    end
-end
+SetIgnoreSelection = wrapped.setIgnoreSelection
+CommandMode.SetIgnoreSelection = wrapped.commandModeSetIgnoreSelection
+IsIgnoreSelection = wrapped.isIgnoreSelection
+OnSelectionChanged = wrapped.onSelectionChanged
+DeselectSelens = wrapped.deselectSelens

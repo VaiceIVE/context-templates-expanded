@@ -3,6 +3,8 @@
 
 local suppressed = false
 local allowSelect = false
+local cycleGeneration = 0
+local latestEndGeneration = 0
 
 local function TryImportAseMain()
     local ok, main = pcall(import, '/mods/ASE/modules/Main.lua')
@@ -63,6 +65,7 @@ function WrapSelectUnits(selectUnits, units)
 end
 
 function BeginCycle(entityIds)
+    cycleGeneration = cycleGeneration + 1
     suppressed = true
     allowSelect = false
 
@@ -72,6 +75,8 @@ function BeginCycle(entityIds)
     end
 
     SetUiSuppress(true)
+
+    return cycleGeneration
 end
 
 function ApplyTemplateCommand(buildableBlueprintId, convertedTemplate, templateEntryCount, entityIds)
@@ -100,7 +105,9 @@ function ApplyTemplateCommand(buildableBlueprintId, convertedTemplate, templateE
     end
 end
 
-function EndCycle(entityIds)
+function EndCycle(entityIds, generation)
+    latestEndGeneration = generation
+
     ForkThread(function()
         local units = UnitsFromEntityIds(entityIds)
         if units then
@@ -110,6 +117,11 @@ function EndCycle(entityIds)
         end
 
         WaitFrames(3)
+
+        -- A newer cycle started before this cleanup finished; do not release suppression.
+        if latestEndGeneration ~= generation then
+            return
+        end
 
         suppressed = false
         allowSelect = false
