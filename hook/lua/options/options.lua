@@ -17,7 +17,7 @@ for index, item in ipairs(options.gameplay.items) do
         })
         table.insert(options.gameplay.items, index + 2, {
             title = ' Cross-tier template matching',
-            tip = 'Allow user templates to match buildings across upgrade tiers (e.g. T2 shield icon on a T3 shield).',
+            tip = 'Allow user templates to match buildings across upgrade tiers (e.g. a T2-first template on a hovered T3 shield).',
             key = 'cte_cross_tier_matching',
             type = 'toggle',
             default = 0,

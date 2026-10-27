@@ -1,0 +1,139 @@
+-------------------------------------------------------------------------------
+-- Selection suppression for context-template cycling.
+
+local suppressed = false
+local allowSelect = false
+local cycleGeneration = 0
+local latestEndGeneration = 0
+
+local function TryImportAseMain()
+    local ok, main = pcall(import, '/mods/ASE/modules/Main.lua')
+    if ok and main then
+        return main
+    end
+end
+
+local function TryImportCommonSelect()
+    local ok, select = pcall(import, '/mods/common/select.lua')
+    if ok and select then
+        return select
+    end
+end
+
+local function UnitsFromEntityIds(entityIds)
+    if not entityIds or entityIds.count == 0 then
+        return nil
+    end
+
+    local units = {}
+    local count = 0
+    for index = 1, entityIds.count do
+        local unit = GetUnitById(entityIds[index])
+        if unit and not IsDestroyed(unit) then
+            count = count + 1
+            units[count] = unit
+        end
+    end
+
+    if count == 0 then
+        return nil
+    end
+
+    return units
+end
+
+local function SetUiSuppress(active)
+    local GameMain = import('/lua/ui/game/gamemain.lua')
+    local Selection = import('/lua/ui/game/selection.lua')
+    GameMain.SetIgnoreSelection(active)
+    Selection.SetSelectionHidden(active)
+end
+
+function IsSuppressed()
+    return suppressed
+end
+
+function IsAllowSelect()
+    return allowSelect
+end
+
+function WrapSelectUnits(selectUnits, units)
+    if suppressed and not allowSelect then
+        return
+    end
+    selectUnits(units)
+end
+
+function BeginCycle(entityIds)
+    cycleGeneration = cycleGeneration + 1
+    suppressed = true
+    allowSelect = false
+
+    local aseMain = TryImportAseMain()
+    if aseMain and aseMain.SetIgnored then
+        aseMain.SetIgnored(true)
+    end
+
+    SetUiSuppress(true)
+
+    return cycleGeneration
+end
+
+function ApplyTemplateCommand(buildableBlueprintId, convertedTemplate, templateEntryCount, entityIds)
+    local commonSelect = TryImportCommonSelect()
+    local commandMode = import('/lua/ui/game/commandmode.lua')
+
+    -- Same as vanilla Cycle: starting build mode must not run EndCommandMode
+    -- behaviors (those wipe ContextBasedTemplates and reset the step).
+    commandMode.SetIgnoreSelection(true)
+    commandMode.StartCommandMode('build', { name = buildableBlueprintId })
+    commandMode.SetIgnoreSelection(false)
+
+    if templateEntryCount > 3 then
+        if commonSelect and commonSelect.Hidden then
+            commonSelect.Hidden(function()
+                SetActiveBuildTemplate(convertedTemplate)
+            end)
+        else
+            SetActiveBuildTemplate(convertedTemplate)
+        end
+    else
+        ClearBuildTemplates()
+    end
+
+    local units = UnitsFromEntityIds(entityIds)
+    if units then
+        allowSelect = true
+        SelectUnits(units)
+        allowSelect = false
+    end
+end
+
+function EndCycle(entityIds, generation)
+    latestEndGeneration = generation
+
+    ForkThread(function()
+        local units = UnitsFromEntityIds(entityIds)
+        if units then
+            allowSelect = true
+            SelectUnits(units)
+            allowSelect = false
+        end
+
+        WaitFrames(3)
+
+        -- A newer cycle started before this cleanup finished; do not release suppression.
+        if latestEndGeneration ~= generation then
+            return
+        end
+
+        suppressed = false
+        allowSelect = false
+        SetUiSuppress(false)
+
+        local aseMain = TryImportAseMain()
+        if aseMain and aseMain.SetIgnored then
+            aseMain.SetIgnored(false)
+        end
+    end)
+end

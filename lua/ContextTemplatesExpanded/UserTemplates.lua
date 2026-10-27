@@ -103,12 +103,8 @@ local function InSameUpgradeChain(blueprintIdA, blueprintIdB)
     return false
 end
 
+--- Slot 3 is the building under the cursor; matching must use that, not the tab icon.
 local function GetTemplateReferenceBlueprint(userTemplate)
-    local icon = userTemplate.icon
-    if icon and icon ~= 'default' then
-        return icon
-    end
-
     local templateData = userTemplate.templateData
     local first = templateData and templateData[3]
     return first and first[1]
@@ -131,6 +127,15 @@ local function BlueprintsMatch(referenceBlueprint, contextBlueprintId, prefix, b
 
     if referenceBlueprint:sub(3) == contextBlueprintId:sub(3) then
         return true
+    end
+
+    -- Same unit the engineer can start (T3 slot / T1 command mode after downgrade).
+    if buildableUnits then
+        local referenceBuildable = FindBuildableBlueprintId(referenceBlueprint, buildableUnits, prefix)
+        local contextBuildable = FindBuildableBlueprintId(contextBlueprintId, buildableUnits, prefix)
+        if referenceBuildable and contextBuildable and referenceBuildable == contextBuildable then
+            return true
+        end
     end
 
     if not CrossTierMatchingEnabled() then
@@ -159,10 +164,6 @@ local function BlueprintsMatch(referenceBlueprint, contextBlueprintId, prefix, b
         local referenceBuildable = FindBuildableBlueprintId(referenceBlueprint, buildableUnits, prefix)
         local contextBuildable = FindBuildableBlueprintId(contextBlueprintId, buildableUnits, prefix)
 
-        if referenceBuildable and contextBuildable and referenceBuildable == contextBuildable then
-            return true
-        end
-
         if referenceBuildable and (referenceBuildable == contextConverted or InSameUpgradeChain(referenceBuildable, contextConverted)) then
             return true
         end
@@ -175,13 +176,23 @@ local function BlueprintsMatch(referenceBlueprint, contextBlueprintId, prefix, b
     return false
 end
 
+--- Same rules as vanilla ValidateTemplate: slot 3 may downgrade, the rest must convert.
 local function UserValidateTemplate(entry, buildableUnits, prefix)
     local FindBuildableBlueprintId = deps.FindBuildableBlueprintId
+    local ConvertBlueprintId = deps.ConvertBlueprintId
     local templateData = entry.TemplateData
-    for index = 3, TableGetn(templateData) do
+    local first = templateData[3]
+    if type(first) ~= 'table' or not FindBuildableBlueprintId(first[1], buildableUnits, prefix) then
+        return false
+    end
+
+    for index = 4, TableGetn(templateData) do
         local building = templateData[index]
-        if type(building) == 'table' and not FindBuildableBlueprintId(building[1], buildableUnits, prefix) then
-            return false
+        if type(building) == 'table' then
+            local converted = ConvertBlueprintId(building[1], prefix)
+            if not converted or not buildableUnits[converted] then
+                return false
+            end
         end
     end
     return true
@@ -368,7 +379,7 @@ local function FilterTemplatesByUnitContext(buildableUnits, prefix)
 end
 
 local function FilterTemplatesByMouseContext(buildableUnits, prefix)
-    -- Mouse filtering is handled by FilterTemplatesByUnitContext.
+    deps.FilterByMouse(buildableUnits, prefix)
 end
 
 local function SortTemplates(a, b)
