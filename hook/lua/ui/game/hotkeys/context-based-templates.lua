@@ -1,17 +1,42 @@
 -------------------------------------------------------------------------------
 -- Context Templates Expanded: hook wiring for context-based template cycling.
 
-local UserTemplates = import('/mods/contexttemplatesexpanded/modules/user_templates.lua')
+local UserTemplates = import("/lua/ContextTemplatesExpanded/UserTemplates.lua")
 local CycleMod = import('/mods/contexttemplatesexpanded/modules/cycle.lua')
 
-local filters = UserTemplates.Create({
-    filterByUnit = FilterTemplatesByUnitContext,
-    filterByMouse = FilterTemplatesByMouseContext,
-    sortTemplates = SortTemplates,
+UserTemplates.Install({
+    ConvertBlueprintId = ConvertBlueprintId,
+    FindBuildableBlueprintId = FindBuildableBlueprintId,
+    TableInsert = TableInsert,
+    TableGetn = TableGetn,
+    type = type,
+    ContextBasedTemplates = ContextBasedTemplates,
+    FilterByUnit = FilterTemplatesByUnitContext,
+    FilterByMouse = FilterTemplatesByMouseContext,
 })
 
-FilterTemplatesByUnitContext = filters.filterByUnit
-FilterTemplatesByMouseContext = filters.filterByMouse
-SortTemplates = filters.sort
+FilterTemplatesByUnitContext = UserTemplates.FilterTemplatesByUnitContext
+FilterTemplatesByMouseContext = UserTemplates.FilterTemplatesByMouseContext
+SortTemplates = UserTemplates.SortTemplates
 
-Cycle = CycleMod.Create()
+Cycle = CycleMod.Create({
+    getStep = function()
+        return ContextBasedTemplateStep
+    end,
+    setStep = function(step)
+        ContextBasedTemplateStep = step
+    end,
+    templates = ContextBasedTemplates,
+    FilterByUnit = FilterTemplatesByUnitContext,
+    FilterByMouse = FilterTemplatesByMouseContext,
+    SortTemplates = SortTemplates,
+    FindBuildableBlueprintId = FindBuildableBlueprintId,
+    ConvertTemplate = ConvertTemplate,
+    Cachedtemplate = Cachedtemplate,
+    TableGetn = TableGetn,
+    TableSetn = TableSetn,
+    TableEmpty = TableEmpty,
+    TableHash = TableHash,
+    TableSort = TableSort,
+    StringFormat = StringFormat,
+})

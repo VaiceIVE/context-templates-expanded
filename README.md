@@ -43,11 +43,13 @@ When the mouse is over a unit, a build preview, or an active build order:
 
 A template is included only if its **first building** (slot 3, the one under the cursor when placed) matches the hovered building. The construction-tab icon is ignored. Build order and layout are copied as saved.
 
-Matching accounts for:
+Matching always accounts for:
 
 - Faction conversion (e.g. Aeon template id with UEF engineers)
 - Same unit type across factions (blueprint numeric suffix)
-- Upgrade/downgrade to the same buildable unit (e.g. T3 mex ghost after a T1 engineer downgrades command mode to T1 mex)
+- The same unit the engineer can start after downgrade (e.g. T3 mex slot after a T1 engineer sets command mode to T1 mex)
+
+**Cross-tier matching** (e.g. T2-first template on a hovered T3 shield) is **off by default**. Enable it under **Options → Gameplay → Cross-tier template matching**.
 
 A template is skipped unless slot 3 can be built or downgraded and every later building is directly buildable after faction conversion (same rules as vanilla `ValidateTemplate`).
 
@@ -57,6 +59,23 @@ If you hover a building and nothing matches, cycling falls back to vanilla terra
 
 1. FAF default templates (by `TemplateSortingOrder`)
 2. Matching user templates (A–Z by template name)
+
+## Project layout
+
+```
+mod/
+├── mod_info.lua
+├── lua/ContextTemplatesExpanded/UserTemplates.lua   # cache, indexing, matching
+├── modules/                                         # cycle + selection compat
+└── hook/
+    ├── lua/options/options.lua                        # cross-tier matching toggle
+    ├── lua/ui/game/hotkeys/context-based-templates.lua
+    ├── lua/ui/game/build_templates.lua              # cache invalidation
+    ├── lua/ui/game/gamemain.lua
+    └── lua/ui/game/selection.lua
+```
+
+User templates are cached and indexed by the first building in the template (including upgrade chains when cross-tier matching is on). The cache refreshes when templates are added, removed, or renamed.
 
 ## Known mod conflicts
 
@@ -78,17 +97,6 @@ Context-based templates are known to conflict with **UI Party**. UI Party can sh
 3. Change a template’s first building (re-save) — cycling should reflect the new filter. Changing only the construction-tab icon should not.
 4. Hover empty land with engineers selected — only FAF terrain defaults (PD/AA); user templates do not appear.
 5. Hover a building that has no matching templates (and no singleton) — terrain defaults appear, same as unmodded FAF.
-6. Use a different faction’s engineers with templates saved in another faction’s blueprint ids — matching and validation should still work.
+6. Hover a T3 shield with a user template that starts with the T2 shield — no match by default; enable **Cross-tier template matching** in Gameplay options to match via upgrade chain.
 7. T1 engineers, hover a T3 mex, cycle a T3-first user template that only adds T1 buildings — set still matches after command mode downgrades to T1 mex.
-
-## Duplicate templates in the cycle
-
-The cycle reads the same profile data as the construction templates tab (`build_templates`). If you see the same template name many times in a row, your profile usually contains duplicate saved entries (often from old templates that were re-saved or imported).
-
-**To align the cycle with what you see in the UI:**
-
-1. Open the construction menu **Templates** tab with engineers selected.
-2. Delete duplicate entries you no longer want (right-click → remove).
-3. Start a new game or reload UI if the tab still looks stale.
-
-This mod also skips duplicate template *content* during cycling (same buildings and layout), so identical copies only appear once even if they remain in the profile.
+8. Use a different faction’s engineers with templates saved in another faction’s blueprint ids — matching and validation should still work.

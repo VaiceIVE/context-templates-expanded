@@ -1,10 +1,10 @@
 name = "Context Templates Expanded"
 version = 1
 copyright = ""
-description = "Adds your saved build templates to the context-based template cycle after FAF defaults when hovering a matching building. Terrain cycling is unchanged."
-author = ""
+description = "Adds your saved build templates to the context-based template cycle after FAF defaults when hovering a matching building. Cross-tier matching is optional in Gameplay options."
+author = "Vaice"
 uid = "c0ffeeee-babe-4200-ba5e-777777777777"
-url = ""
+url = "https://github.com/VaiceIVE/context-templates-expanded"
 icon = ""
 selectable = true
 enabled = true
@@ -24,3 +24,4 @@ after = {
     '022E3DB4-9C00-5ED7-9876-4866D316E015',
     'engineer-alt-selection-v01',
 }
+_faf_modname = 'Context Templates Expanded'

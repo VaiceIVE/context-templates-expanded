@@ -6,7 +6,23 @@ local Units = import('/mods/contexttemplatesexpanded/modules/units.lua')
 
 local M = {}
 
-function M.Create()
+function M.Create(vanilla)
+    local getStep = vanilla.getStep
+    local setStep = vanilla.setStep
+    local templates = vanilla.templates
+    local FilterByUnit = vanilla.FilterByUnit
+    local FilterByMouse = vanilla.FilterByMouse
+    local SortTemplates = vanilla.SortTemplates
+    local FindBuildableBlueprintId = vanilla.FindBuildableBlueprintId
+    local ConvertTemplate = vanilla.ConvertTemplate
+    local Cachedtemplate = vanilla.Cachedtemplate
+    local TableGetn = vanilla.TableGetn
+    local TableSetn = vanilla.TableSetn
+    local TableEmpty = vanilla.TableEmpty
+    local TableHash = vanilla.TableHash
+    local TableSort = vanilla.TableSort
+    local StringFormat = vanilla.StringFormat
+
     return function()
         local start = GetSystemTimeSeconds()
 
@@ -28,30 +44,30 @@ function M.Create()
 
         local cycleGeneration = SelectionCompat.BeginCycle(entityIds)
 
-        if ContextBasedTemplateStep == 0 then
-            for index = 1, TableGetn(ContextBasedTemplates) do
-                ContextBasedTemplates[index] = nil
+        if getStep() == 0 then
+            for index = 1, TableGetn(templates) do
+                templates[index] = nil
             end
 
-            TableSetn(ContextBasedTemplates, 0)
+            TableSetn(templates, 0)
 
-            local applies = FilterTemplatesByUnitContext(buildableUnits, prefix)
+            local applies = FilterByUnit(buildableUnits, prefix)
             if not applies then
-                FilterTemplatesByMouseContext(buildableUnits, prefix)
+                FilterByMouse(buildableUnits, prefix)
             end
 
-            TableSort(ContextBasedTemplates, SortTemplates)
+            TableSort(templates, SortTemplates)
         end
 
-        if TableGetn(ContextBasedTemplates) == 0 then
+        if TableGetn(templates) == 0 then
             print("No templates available")
             SelectionCompat.EndCycle(entityIds, cycleGeneration)
             return
         end
 
-        local count = TableGetn(ContextBasedTemplates)
-        local index = math.mod(ContextBasedTemplateStep, count) + 1
-        local template = ContextBasedTemplates[index]
+        local count = TableGetn(templates)
+        local index = math.mod(getStep(), count) + 1
+        local template = templates[index]
 
         if template then
             local buildableBlueprintId = FindBuildableBlueprintId(
@@ -70,7 +86,7 @@ function M.Create()
             print(StringFormat("(%d/%d) %s", index, count, tostring(template.Name)))
         end
 
-        ContextBasedTemplateStep = ContextBasedTemplateStep + 1
+        setStep(getStep() + 1)
 
         SelectionCompat.EndCycle(entityIds, cycleGeneration)
 
