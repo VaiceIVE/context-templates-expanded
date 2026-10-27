@@ -41,21 +41,17 @@ When the mouse is over a unit, a build preview, or an active build order:
 
 ### Which user templates match a building
 
-A template is included only if its reference building matches the hovered building:
-
-| Priority | Reference building |
-|----------|-------------------|
-| 1 | Template menu icon (set via **Change Icon** in the construction templates tab) |
-| 2 | First building in the template’s build order, if the icon is `default` |
+A template is included only if its **first building** (slot 3, the one under the cursor when placed) matches the hovered building. The construction-tab icon is ignored. Build order and layout are copied as saved.
 
 Matching accounts for:
 
 - Faction conversion (e.g. Aeon template id with UEF engineers)
 - Same unit type across factions (blueprint numeric suffix)
+- Upgrade/downgrade to the same buildable unit (e.g. T3 mex ghost after a T1 engineer downgrades command mode to T1 mex)
 
-The reference building is resolved the same way as the construction templates tab: saved icon, else the first building in the template that has a unit icon, else the first building in the build queue.
+A template is skipped unless slot 3 can be built or downgraded and every later building is directly buildable after faction conversion (same rules as vanilla `ValidateTemplate`).
 
-A template is also skipped if the current engineer selection cannot build every building in it (each entry is checked with upgrade/downgrade resolution).
+If you hover a building and nothing matches, cycling falls back to vanilla terrain templates (PD/AA), same as unmodded FAF.
 
 ## Ordering summary
 
@@ -77,12 +73,13 @@ Context-based templates are known to conflict with **UI Party**. UI Party can sh
 
 ## Test checklist
 
-1. Save two or more user templates with different icons.
-2. Select engineers, hover a building that matches one template’s icon, press the context-template hotkey — matching user templates appear after FAF defaults, in A–Z order.
-3. Change a template icon in the construction menu — cycling should reflect the new filter immediately.
-4. Use a template with the default icon — matching uses the first building in build order.
-5. Hover empty land with engineers selected — only FAF terrain defaults (PD/AA); user templates do not appear.
+1. Save two or more user templates whose first buildings are different types.
+2. Select engineers, hover a building that matches one template’s first building, press the context-template hotkey — matching user templates appear after FAF defaults, in A–Z order.
+3. Change a template’s first building (re-save) — cycling should reflect the new filter. Changing only the construction-tab icon should not.
+4. Hover empty land with engineers selected — only FAF terrain defaults (PD/AA); user templates do not appear.
+5. Hover a building that has no matching templates (and no singleton) — terrain defaults appear, same as unmodded FAF.
 6. Use a different faction’s engineers with templates saved in another faction’s blueprint ids — matching and validation should still work.
+7. T1 engineers, hover a T3 mex, cycle a T3-first user template that only adds T1 buildings — set still matches after command mode downgrades to T1 mex.
 
 ## Duplicate templates in the cycle
 

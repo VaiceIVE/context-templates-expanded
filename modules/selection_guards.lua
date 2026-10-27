@@ -29,7 +29,6 @@ local M = {}
 
 function M.Create(gamemain)
     local setIgnoreSelection = gamemain.setIgnoreSelection
-    local commandModeSetIgnoreSelection = gamemain.commandModeSetIgnoreSelection
     local onSelectionChanged = gamemain.onSelectionChanged
     local deselectSelens = gamemain.deselectSelens
     local selectionIsHidden = gamemain.selectionIsHidden
@@ -44,11 +43,6 @@ function M.Create(gamemain)
         setIgnoreSelection = function(ignore)
             gamemain.setIgnoreSelectionFlag(ignore == true)
             setIgnoreSelection(ignore)
-        end,
-
-        commandModeSetIgnoreSelection = function(ignore)
-            gamemain.setIgnoreSelectionFlag(ignore == true)
-            commandModeSetIgnoreSelection(ignore)
         end,
 
         isIgnoreSelection = function()

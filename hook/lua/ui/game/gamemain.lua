@@ -2,12 +2,10 @@
 -- Context Templates Expanded: gamemain hook wiring.
 
 local Guards = import('/mods/contexttemplatesexpanded/modules/selection_guards.lua')
-local CommandMode = import('/lua/ui/game/commandmode.lua')
 local Selection = import('/lua/ui/game/selection.lua')
 
 local wrapped = Guards.Create({
     setIgnoreSelection = SetIgnoreSelection,
-    commandModeSetIgnoreSelection = CommandMode.SetIgnoreSelection,
     onSelectionChanged = OnSelectionChanged,
     deselectSelens = DeselectSelens,
     getIgnoreSelection = function()
@@ -20,7 +18,6 @@ local wrapped = Guards.Create({
 })
 
 SetIgnoreSelection = wrapped.setIgnoreSelection
-CommandMode.SetIgnoreSelection = wrapped.commandModeSetIgnoreSelection
 IsIgnoreSelection = wrapped.isIgnoreSelection
 OnSelectionChanged = wrapped.onSelectionChanged
 DeselectSelens = wrapped.deselectSelens

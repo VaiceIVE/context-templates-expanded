@@ -3,15 +3,11 @@
 
 local BuildTemplates = import("/lua/ui/game/build_templates.lua")
 local CommandMode = import("/lua/ui/game/commandmode.lua")
-local UIUtil = import("/lua/ui/uiutil.lua")
 
 local StringLower = string.lower
 local StringLen = string.len
 
 local USER_SORT_BASE = 100000
-
-local unitIconExistsCache = {}
-local templateReferenceCache = {}
 
 local function IsBlueprintId(blueprintId)
     return type(blueprintId) == 'string'
@@ -45,8 +41,8 @@ local function GetUnitContextBlueprintId()
     return nil
 end
 
---- Icon building must match hovered building (faction conversion or same unit suffix).
-local function BlueprintsMatch(referenceBlueprintId, contextBlueprintId, prefix)
+--- Slot 3 must match hovered building (faction, suffix, or same buildable after downgrade).
+local function BlueprintsMatch(referenceBlueprintId, contextBlueprintId, prefix, buildableUnits)
     if not IsBlueprintId(referenceBlueprintId) or not IsBlueprintId(contextBlueprintId) then
         return false
     end
@@ -58,73 +54,36 @@ local function BlueprintsMatch(referenceBlueprintId, contextBlueprintId, prefix)
         return true
     end
 
-    return referenceBlueprintId:sub(3) == contextBlueprintId:sub(3)
+    if referenceBlueprintId:sub(3) == contextBlueprintId:sub(3) then
+        return true
+    end
+
+    -- T3 slot / T1 command mode after ConvertTemplate downgrades the ghost.
+    local referenceBuildable = FindBuildableBlueprintId(referenceBlueprintId, buildableUnits, prefix)
+    local contextBuildable = FindBuildableBlueprintId(contextBlueprintId, buildableUnits, prefix)
+    return referenceBuildable ~= nil and referenceBuildable == contextBuildable
 end
 
-local function UnitIconExists(blueprintId)
-    local cached = unitIconExistsCache[blueprintId]
-    if cached ~= nil then
-        return cached
-    end
-
-    local exists = UIUtil.UIFile('/icons/units/' .. blueprintId .. '_icon.dds', true) ~= nil
-    unitIconExistsCache[blueprintId] = exists
-    return exists
+local function UserTemplateMatchesBuilding(userTemplate, contextBlueprintId, prefix, buildableUnits)
+    local first = userTemplate.templateData and userTemplate.templateData[3]
+    return BlueprintsMatch(first and first[1], contextBlueprintId, prefix, buildableUnits)
 end
 
---- Same reference building as the construction templates tab (icon, then first valid icon in queue, then first entry).
-local function GetTemplateReferenceBlueprint(userTemplate)
-    local cached = templateReferenceCache[userTemplate]
-    if cached ~= nil then
-        return cached ~= false and cached or nil
-    end
-
-    local icon = userTemplate.icon
-    if icon and icon ~= 'default' and IsBlueprintId(icon) then
-        templateReferenceCache[userTemplate] = icon
-        return icon
-    end
-
-    local templateData = userTemplate.templateData
-    if not templateData then
-        templateReferenceCache[userTemplate] = false
-        return nil
-    end
-
-    for index = 3, TableGetn(templateData) do
-        local entry = templateData[index]
-        if type(entry) == 'table' then
-            local blueprintId = entry[1]
-            if IsBlueprintId(blueprintId) and UnitIconExists(blueprintId) then
-                templateReferenceCache[userTemplate] = blueprintId
-                return blueprintId
-            end
-        end
-    end
-
-    local first = templateData[3]
-    local blueprintId = first and first[1]
-    if IsBlueprintId(blueprintId) then
-        templateReferenceCache[userTemplate] = blueprintId
-        return blueprintId
-    end
-
-    templateReferenceCache[userTemplate] = false
-    return nil
-end
-
-local function UserTemplateMatchesBuilding(userTemplate, contextBlueprintId, prefix)
-    local referenceBlueprint = GetTemplateReferenceBlueprint(userTemplate)
-    return referenceBlueprint
-        and BlueprintsMatch(referenceBlueprint, contextBlueprintId, prefix)
-end
-
+--- Same rules as vanilla ValidateTemplate: slot 3 may downgrade, the rest must convert.
 local function UserValidateTemplate(template, buildableUnits, prefix)
     local templateData = template.TemplateData
-    for index = 3, TableGetn(templateData) do
+    local first = templateData[3]
+    if type(first) ~= 'table' or not FindBuildableBlueprintId(first[1], buildableUnits, prefix) then
+        return false
+    end
+
+    for index = 4, TableGetn(templateData) do
         local entry = templateData[index]
-        if type(entry) == 'table' and not FindBuildableBlueprintId(entry[1], buildableUnits, prefix) then
-            return false
+        if type(entry) == 'table' then
+            local converted = ConvertBlueprintId(entry[1], prefix)
+            if not converted or not buildableUnits[converted] then
+                return false
+            end
         end
     end
     return true
@@ -165,8 +124,6 @@ local function AppendUserTemplates(buildableUnits, prefix, contextBlueprintId)
         return
     end
 
-    templateReferenceCache = {}
-
     local userTemplates = BuildTemplates.GetTemplates() or {}
     local userIndex = 0
     local seen = {}
@@ -175,7 +132,7 @@ local function AppendUserTemplates(buildableUnits, prefix, contextBlueprintId)
         local userTemplate = userTemplates[index]
         local templateData = userTemplate and userTemplate.templateData
         if templateData and TableGetn(templateData) >= 3
-            and UserTemplateMatchesBuilding(userTemplate, contextBlueprintId, prefix) then
+            and UserTemplateMatchesBuilding(userTemplate, contextBlueprintId, prefix, buildableUnits) then
             local fingerprint = TemplateFingerprint(templateData)
             if fingerprint ~= '' and not seen[fingerprint] then
                 seen[fingerprint] = true
@@ -217,10 +174,7 @@ function M.Create(vanilla)
             return TableGetn(ContextBasedTemplates) > 0
         end,
 
-        filterByMouse = function(buildableUnits, prefix)
-            -- Mouse filtering is handled by the wrapped filterByUnit.
-            -- This no-op prevents duplicate filtering when Cycle falls back here.
-        end,
+        filterByMouse = filterByMouse,
 
         sort = function(a, b)
             local aUser = a.IsUserTemplate == true

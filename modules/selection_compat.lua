@@ -83,7 +83,11 @@ function ApplyTemplateCommand(buildableBlueprintId, convertedTemplate, templateE
     local commonSelect = TryImportCommonSelect()
     local commandMode = import('/lua/ui/game/commandmode.lua')
 
+    -- Same as vanilla Cycle: starting build mode must not run EndCommandMode
+    -- behaviors (those wipe ContextBasedTemplates and reset the step).
+    commandMode.SetIgnoreSelection(true)
     commandMode.StartCommandMode('build', { name = buildableBlueprintId })
+    commandMode.SetIgnoreSelection(false)
 
     if templateEntryCount > 3 then
         if commonSelect and commonSelect.Hidden then
